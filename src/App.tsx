@@ -340,8 +340,32 @@ export default function App() {
     try {
       localStorage.setItem('crm_customers', JSON.stringify(updatedList));
       setCustomers(updatedList);
-      createAutoBackup('Cập nhật Danh sách KH', updatedList);
-      setStatusMessage('Đã tự động lưu dữ liệu khách hàng!');
+
+      // Synchronize transaction customer names and customer IDs if any customer was updated or deleted
+      let transactionsUpdated = false;
+      const updatedTransactionsList = transactions.map((t) => {
+        // Find if this transaction's customer still exists in the list
+        const activeCust = updatedList.find((c) => c.id === t.customerId);
+        if (activeCust) {
+          if (activeCust.name !== t.customerName) {
+            transactionsUpdated = true;
+            return { ...t, customerName: activeCust.name };
+          }
+        } else if (t.customerId && t.customerId !== 'KH_LE') {
+          // Customer was deleted, dissociate transaction from their ID and set to KH_LE
+          transactionsUpdated = true;
+          return { ...t, customerId: 'KH_LE' };
+        }
+        return t;
+      });
+
+      if (transactionsUpdated) {
+        localStorage.setItem('crm_transactions', JSON.stringify(updatedTransactionsList));
+        setTransactions(updatedTransactionsList);
+      }
+
+      createAutoBackup('Cập nhật Danh sách KH', updatedList, transactionsUpdated ? updatedTransactionsList : undefined);
+      setStatusMessage('Đã tự động bộ và lưu dữ liệu khách hàng!');
       setTimeout(() => setStatusMessage(''), 2000);
     } catch (err: any) {
       console.error(err);
@@ -357,10 +381,21 @@ export default function App() {
     setIsLoading(true);
     setStatusMessage('Đang cập nhật lịch sử bán lẻ...');
     try {
-      localStorage.setItem('crm_transactions', JSON.stringify(updatedList));
-      setTransactions(updatedList);
-      createAutoBackup('Cập nhật Giao dịch', undefined, updatedList);
-      setStatusMessage('Đã ghi nhận giao dịch thành công!');
+      // Ensure transaction customer names are synchronized with their respective customer record
+      const syncedTransactions = updatedList.map((t) => {
+        if (t.customerId && t.customerId !== 'KH_LE') {
+          const matchingCustomer = customers.find((c) => c.id === t.customerId);
+          if (matchingCustomer && matchingCustomer.name !== t.customerName) {
+            return { ...t, customerName: matchingCustomer.name };
+          }
+        }
+        return t;
+      });
+
+      localStorage.setItem('crm_transactions', JSON.stringify(syncedTransactions));
+      setTransactions(syncedTransactions);
+      createAutoBackup('Cập nhật Giao dịch', undefined, syncedTransactions);
+      setStatusMessage('Đã ghi nhận và đồng bộ giao dịch thành công!');
       setTimeout(() => setStatusMessage(''), 2000);
     } catch (err: any) {
       console.error(err);
