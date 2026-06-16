@@ -1,0 +1,6 @@
+{
+  "name": "Customer & Revenue Manager",
+  "description": "Ứng dụng chuyên nghiệp quản lý khách hàng và báo cáo doanh thu hàng ngày, tuần, tháng với hệ thống lưu trữ offline an toàn.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
